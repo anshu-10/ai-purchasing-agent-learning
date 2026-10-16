@@ -4,6 +4,7 @@ class AgentState(TypedDict):
     recommendation: Dict[str, Any]
     investigation_data: Dict[str, Any]
     constraint_result: Dict[str, Any]
+    recovery_plan: Optional[Dict[str, Any]]
     decision: Optional[str]
     final_qty: Optional[int]
     reasoning_summary: Optional[str]
