@@ -529,6 +529,85 @@ def render_execution_and_validation(ph, state):
         else:
             vq3.metric("Fulfillment Shortfall", "0 units", delta="Complete Match", delta_color="normal")
 
+    # === RECOVERY PLAN UI ===
+    recovery = state.get("recovery_plan") or {}
+
+    if recovery:
+        st.markdown(
+            """
+            <div style="
+                margin: 18px 0 10px 0;
+                padding: 14px 16px;
+                border: 1px solid rgba(45, 212, 191, 0.35);
+                border-radius: 12px;
+                background: rgba(45, 212, 191, 0.06);
+            ">
+                <div style="
+                    font-size: 12px;
+                    font-weight: 700;
+                    letter-spacing: 1.2px;
+                    color: #2dd4bf;
+                ">
+                    RECOVERY PLAN
+                </div>
+                <div style="
+                    font-size: 20px;
+                    font-weight: 700;
+                    margin-top: 4px;
+                ">
+                    Alternative sourcing recommendation
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        recovery_status = recovery.get("status", "RECOMMENDED")
+        shortfall = int(recovery.get("shortfall", diff_qty) or 0)
+        candidates = recovery.get("candidate_suppliers") or []
+
+        rc1, rc2, rc3 = st.columns(3)
+        rc1.metric("Recovery Status", recovery_status)
+        rc2.metric("Shortfall to Recover", f"{shortfall:,} units")
+        rc3.metric("Alternative Suppliers", str(len(candidates)))
+
+        if candidates:
+            rows = []
+            for supplier in candidates:
+                rows.append(
+                    {
+                        "Supplier": supplier.get("id", "UNKNOWN"),
+                        "Name": supplier.get("name", "Unknown"),
+                        "Available": supplier.get("available_quantity", 0),
+                        "MOQ": supplier.get("minimum_order_quantity", 0),
+                        "Lead Time": f'{supplier.get("lead_time_days", "?")} days',
+                        "Unit Cost": f'₹{supplier.get("unit_cost", 0):,.0f}',
+                        "Covers Shortfall": (
+                            "Yes"
+                            if supplier.get("covers_required_quantity")
+                            else "No"
+                        ),
+                        "Score": supplier.get("selection_score", 0),
+                    }
+                )
+
+            st.dataframe(
+                rows,
+                use_container_width=True,
+                hide_index=True,
+            )
+        else:
+            st.warning(
+                "No feasible alternative supplier was identified "
+                "for the current shortfall."
+            )
+
+        st.info(
+            "Human review required. No automatic second PO is created "
+            "by the recovery layer."
+        )
+
+
 def render_trace_section(ph, state):
     """Renders the chronological trace and raw JSON tabs in an expander."""
     trace_data = state.get("agent_trace") or []
