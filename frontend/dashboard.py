@@ -530,7 +530,26 @@ def render_execution_and_validation(ph, state):
             vq3.metric("Fulfillment Shortfall", "0 units", delta="Complete Match", delta_color="normal")
 
     # === RECOVERY PLAN UI ===
+    # Prefer the backend recovery plan. If an older workflow state does not
+    # contain it, derive a read-only recovery recommendation from the already
+    # validated shortfall and investigated alternative suppliers.
     recovery = state.get("recovery_plan") or {}
+
+    if not recovery and val_status == "PARTIALLY_VALID" and diff_qty > 0:
+        investigation = state.get("investigation_data") or {}
+        candidates = investigation.get("alternative_suppliers") or []
+        recovery = {
+            "status": "RECOMMENDED",
+            "shortfall": int(diff_qty),
+            "candidate_suppliers": [
+                supplier for supplier in candidates
+                if supplier.get("meets_moq", False)
+            ][:3],
+            "message": (
+                "Initial PO was partially fulfilled. Review the shortfall "
+                "and alternative suppliers before creating any additional PO."
+            ),
+        }
 
     if recovery:
         st.markdown(
