@@ -277,3 +277,34 @@ python tests/run_eval.py
 1. **Multi-Supplier Split Orders**: When a primary supplier lacks capacity, automatically split the remaining order across secondary or alternative suppliers.
 2. **Asynchronous Webhook Ingestion**: Ingest real Advanced Shipping Notices (ASNs) and goods receipt notes via webhooks to evaluate partial fulfillment when inventory physically arrives.
 3. **Historical Supplier Reliability Scoring**: Incorporate past supplier fulfillment rates into the agent's prompt to adjust order buffer quantities dynamically.
+
+
+## Alternative supplier and recovery behavior
+
+The procurement workflow adds a deterministic supplier-recovery layer:
+
+- Alternative suppliers are investigated when procurement needs more sourcing options.
+- Candidates expose capacity coverage, MOQ compatibility, lead time, unit cost, and a deterministic selection score.
+- The LLM can reason over supplier options, while feasibility calculations remain outside the model.
+- If a created PO is only partially fulfilled, the system calculates the shortfall and prepares feasible alternative suppliers for human review.
+- The system does not silently create a second PO after a failed or partial action.
+
+## Recovery Loop
+
+The agent uses closed-loop recovery when an executed purchase does not match the intended quantity.
+
+```mermaid
+flowchart TD
+    A[Untrusted Recommendation] --> B[Investigate]
+    B --> C[Deterministic Constraints]
+    C --> D[LLM Decision]
+    D --> E{Approval Required?}
+    E -->|No| F[Execute PO]
+    E -->|Yes| G[Human Approval]
+    G --> F
+    F --> H[Validate Actual PO]
+    H -->|VALID| I[Complete]
+    H -->|PARTIALLY_VALID| J[Calculate Shortfall]
+    J --> K[Rank Alternative Suppliers]
+    K --> L[Recovery Recommendation]
+    L --> M[Human Review]

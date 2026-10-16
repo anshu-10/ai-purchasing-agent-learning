@@ -4,7 +4,7 @@ from app.agents.prompts import SYSTEM_PROMPT
 from app.db.database import SessionLocal
 from app.tools.inventory import get_inventory
 from app.tools.demand import get_demand
-from app.tools.suppliers import get_supplier_info
+from app.tools.suppliers import get_supplier_info, rank_alternative_suppliers
 from app.tools.purchase_orders import get_open_purchase_orders
 from app.tools.budget import get_budget
 from app.tools.storage import get_storage_capacity
@@ -37,6 +37,12 @@ def investigate_node(state: AgentState):
             "inventory": get_inventory(product_id, db),
             "demand": get_demand(product_id, db),
             "supplier": get_supplier_info(supplier_id, db),
+            "alternative_suppliers": rank_alternative_suppliers(
+                product_id=product_id,
+                original_supplier_id=supplier_id,
+                required_qty=rec["recommended_qty"],
+                db=db,
+            ),
             "open_pos": get_open_purchase_orders(product_id, db),
             "budget": get_budget(db),
             "storage": get_storage_capacity(product_id, db)
@@ -45,7 +51,12 @@ def investigate_node(state: AgentState):
         db.close()
     
     state["investigation_data"] = inv_data
-    state["agent_trace"].append({"step": "Investigate", "timestamp": datetime.now().isoformat(), "detail": "Gathered data from tools."})
+    alternative_count = len(inv_data.get("alternative_suppliers", []))
+    state["agent_trace"].append({
+        "step": "Investigate",
+        "timestamp": datetime.now().isoformat(),
+        "detail": f"Gathered operational data and ranked {alternative_count} alternative suppliers.",
+    })
     return state
 
 def evaluate_constraints_node(state: AgentState):

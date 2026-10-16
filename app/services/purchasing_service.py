@@ -131,6 +131,7 @@ def run_purchasing_workflow(product_id: str, supplier_id: str, recommended_qty: 
             },
             investigation_data={},
             constraint_result={},
+            recovery_plan=None,
             decision=None,
             final_qty=None,
             reasoning_summary=None,
@@ -169,6 +170,28 @@ def run_purchasing_workflow(product_id: str, supplier_id: str, recommended_qty: 
             )
             final_state["execution_result"] = exec_outcome["execution_result"]
             final_state["validation_result"] = exec_outcome["validation_result"]
+
+            validation = final_state["validation_result"]
+            if validation.get("status") == "PARTIALLY_VALID":
+                actual_qty = final_state.get("execution_result", {}).get("quantity", 0)
+                shortfall = max(final_qty - actual_qty, 0)
+                alternatives = final_state.get("investigation_data", {}).get("alternative_suppliers", [])
+                feasible_alternatives = [
+                    s for s in alternatives
+                    if s.get("available_quantity", 0) >= shortfall
+                    and s.get("meets_moq", False)
+                ]
+                final_state["recovery_plan"] = {
+                    "status": "RECOMMENDED",
+                    "shortfall": shortfall,
+                    "candidate_suppliers": feasible_alternatives[:3],
+                    "message": f"Initial PO was partially fulfilled. Recovery quantity needed: {shortfall}.",
+                }
+                final_state["agent_trace"].append({
+                    "step": "Recovery Planning",
+                    "timestamp": datetime.now().isoformat(),
+                    "detail": f"Detected shortfall of {shortfall} and prepared alternative supplier candidates.",
+                })
             
             final_state["agent_trace"].append({
                 "step": "Validation",
@@ -209,6 +232,7 @@ def run_purchasing_workflow_stream(product_id: str, supplier_id: str, recommende
             },
             investigation_data={},
             constraint_result={},
+            recovery_plan=None,
             decision=None,
             final_qty=None,
             reasoning_summary=None,
@@ -259,6 +283,28 @@ def run_purchasing_workflow_stream(product_id: str, supplier_id: str, recommende
             )
             current_state["execution_result"] = exec_outcome["execution_result"]
             current_state["validation_result"] = exec_outcome["validation_result"]
+
+            validation = current_state["validation_result"]
+            if validation.get("status") == "PARTIALLY_VALID":
+                actual_qty = current_state.get("execution_result", {}).get("quantity", 0)
+                shortfall = max(final_qty - actual_qty, 0)
+                alternatives = current_state.get("investigation_data", {}).get("alternative_suppliers", [])
+                feasible_alternatives = [
+                    s for s in alternatives
+                    if s.get("available_quantity", 0) >= shortfall
+                    and s.get("meets_moq", False)
+                ]
+                current_state["recovery_plan"] = {
+                    "status": "RECOMMENDED",
+                    "shortfall": shortfall,
+                    "candidate_suppliers": feasible_alternatives[:3],
+                    "message": f"Recovery quantity needed: {shortfall}.",
+                }
+                current_state["agent_trace"].append({
+                    "step": "Recovery Planning",
+                    "timestamp": datetime.now().isoformat(),
+                    "detail": f"Detected shortfall of {shortfall} and prepared alternative supplier candidates.",
+                })
             yield ("execution", current_state)
 
             current_state["agent_trace"].append({
