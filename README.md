@@ -1,6 +1,6 @@
 # AI Purchasing Agent
 
-**Live Demo:** [https://demo-ai-purchasing-agent.streamlit.app/](https://demo-ai-purchasing-agent.streamlit.app/)
+**Live Demo:** [https://rappi-ai-purchasing-agent.streamlit.app/](https://rappi-ai-purchasing-agent.streamlit.app/)
 
 An autonomous procurement operations assistant designed for retail and quick-commerce environments. Built with LangGraph, Google Gemini, FastAPI, and Streamlit, the agent reviews untrusted replenishment recommendations, gathers multi-source operational data, strictly enforces deterministic physical and financial constraints (in ₹ INR), gates risky actions behind human approval, autonomously executes purchase orders, and verifies outcomes through closed-loop post-action validation.
 

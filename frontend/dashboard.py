@@ -25,6 +25,144 @@ st.set_page_config(
     layout="wide"
 )
 
+# === PROCUREMENT UI UPGRADE ===
+# Presentation layer only. Agent, database, constraints and workflow are unchanged.
+
+st.markdown("""
+<style>
+.block-container {
+    max-width: 1500px;
+    padding-top: 2rem;
+    padding-bottom: 3rem;
+}
+
+[data-testid="stHeader"] {
+    background: transparent;
+}
+
+[data-testid="stToolbar"] {
+    right: 1rem;
+}
+
+section[data-testid="stSidebar"] {
+    border-right: 1px solid #253241;
+}
+
+section[data-testid="stSidebar"] > div {
+    padding-top: 1.5rem;
+}
+
+div[data-testid="stVerticalBlockBorderWrapper"] {
+    border: 1px solid #253241;
+    border-radius: 14px;
+    background: linear-gradient(145deg, #111821, #0D131A);
+}
+
+div[data-testid="stMetric"] {
+    background: #111821;
+    border: 1px solid #253241;
+    padding: 1rem 1.1rem;
+    border-radius: 12px;
+}
+
+div[data-testid="stMetricLabel"] {
+    color: #91A1B2;
+}
+
+div[data-testid="stMetricValue"] {
+    font-weight: 700;
+}
+
+.stButton > button {
+    border-radius: 10px;
+    min-height: 2.7rem;
+    font-weight: 650;
+    border: 1px solid #2A3949;
+    transition: all .15s ease;
+}
+
+.stButton > button:hover {
+    border-color: #00C2A8;
+    box-shadow: 0 0 0 1px #00C2A8;
+}
+
+button[kind="primary"] {
+    background: linear-gradient(90deg, #00A98F, #00C2A8);
+    color: #06110F;
+    border: 0;
+}
+
+div[data-baseweb="select"] > div,
+div[data-testid="stTextInput"] input,
+div[data-testid="stNumberInput"] input {
+    border-radius: 9px;
+}
+
+details {
+    border: 1px solid #253241 !important;
+    border-radius: 10px !important;
+    background: #0F151D !important;
+}
+
+[data-testid="stDataFrame"] {
+    border: 1px solid #253241;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+div[data-testid="stAlert"] {
+    border-radius: 10px;
+}
+
+h1 {
+    letter-spacing: -.035em;
+}
+
+h2, h3 {
+    letter-spacing: -.02em;
+}
+
+.procurement-hero {
+    padding: 1.35rem 1.5rem;
+    margin: 0 0 1.5rem 0;
+    border: 1px solid #253241;
+    border-radius: 16px;
+    background: radial-gradient(
+        circle at 85% 20%,
+        rgba(0,194,168,.12),
+        transparent 30%
+    ), linear-gradient(135deg, #111A23, #0B1118);
+}
+
+.procurement-kicker {
+    color: #00C2A8;
+    font-size: .78rem;
+    font-weight: 750;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.procurement-subtitle {
+    color: #91A1B2;
+    margin-top: .35rem;
+    font-size: .98rem;
+}
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<div class="procurement-hero">
+    <div class="procurement-kicker">
+        PROCUREMENT INTELLIGENCE CONSOLE
+    </div>
+    <div class="procurement-subtitle">
+        Investigate → Constrain → Decide → Approve → Execute → Validate
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# === END PROCUREMENT UI UPGRADE ===
+
 # Seed database on startup
 @st.cache_resource
 def init_db():
@@ -390,6 +528,104 @@ def render_execution_and_validation(ph, state):
             vq3.metric("Fulfillment Shortfall", f"{diff_qty:,} units", delta=f"-{diff_qty} shortfall", delta_color="inverse")
         else:
             vq3.metric("Fulfillment Shortfall", "0 units", delta="Complete Match", delta_color="normal")
+
+    # === RECOVERY PLAN UI ===
+    # Prefer the backend recovery plan. If an older workflow state does not
+    # contain it, derive a read-only recovery recommendation from the already
+    # validated shortfall and investigated alternative suppliers.
+    recovery = state.get("recovery_plan") or {}
+
+    if not recovery and val_status == "PARTIALLY_VALID" and diff_qty > 0:
+        investigation = state.get("investigation_data") or {}
+        candidates = investigation.get("alternative_suppliers") or []
+        recovery = {
+            "status": "RECOMMENDED",
+            "shortfall": int(diff_qty),
+            "candidate_suppliers": [
+                supplier for supplier in candidates
+                if supplier.get("meets_moq", False)
+            ][:3],
+            "message": (
+                "Initial PO was partially fulfilled. Review the shortfall "
+                "and alternative suppliers before creating any additional PO."
+            ),
+        }
+
+    if recovery:
+        st.markdown(
+            """
+            <div style="
+                margin: 18px 0 10px 0;
+                padding: 14px 16px;
+                border: 1px solid rgba(45, 212, 191, 0.35);
+                border-radius: 12px;
+                background: rgba(45, 212, 191, 0.06);
+            ">
+                <div style="
+                    font-size: 12px;
+                    font-weight: 700;
+                    letter-spacing: 1.2px;
+                    color: #2dd4bf;
+                ">
+                    RECOVERY PLAN
+                </div>
+                <div style="
+                    font-size: 20px;
+                    font-weight: 700;
+                    margin-top: 4px;
+                ">
+                    Alternative sourcing recommendation
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        recovery_status = recovery.get("status", "RECOMMENDED")
+        shortfall = int(recovery.get("shortfall", diff_qty) or 0)
+        candidates = recovery.get("candidate_suppliers") or []
+
+        rc1, rc2, rc3 = st.columns(3)
+        rc1.metric("Recovery Status", recovery_status)
+        rc2.metric("Shortfall to Recover", f"{shortfall:,} units")
+        rc3.metric("Alternative Suppliers", str(len(candidates)))
+
+        if candidates:
+            rows = []
+            for supplier in candidates:
+                rows.append(
+                    {
+                        "Supplier": supplier.get("id", "UNKNOWN"),
+                        "Name": supplier.get("name", "Unknown"),
+                        "Available": supplier.get("available_quantity", 0),
+                        "MOQ": supplier.get("minimum_order_quantity", 0),
+                        "Lead Time": f'{supplier.get("lead_time_days", "?")} days',
+                        "Unit Cost": f'₹{supplier.get("unit_cost", 0):,.0f}',
+                        "Covers Shortfall": (
+                            "Yes"
+                            if supplier.get("covers_required_quantity")
+                            else "No"
+                        ),
+                        "Score": supplier.get("selection_score", 0),
+                    }
+                )
+
+            st.dataframe(
+                rows,
+                use_container_width=True,
+                hide_index=True,
+            )
+        else:
+            st.warning(
+                "No feasible alternative supplier was identified "
+                "for the current shortfall."
+            )
+
+        st.info(
+            "Human review required. No automatic second PO is created "
+            "by the recovery layer."
+        )
+
 
 def render_trace_section(ph, state):
     """Renders the chronological trace and raw JSON tabs in an expander."""
