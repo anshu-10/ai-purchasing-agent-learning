@@ -25,6 +25,144 @@ st.set_page_config(
     layout="wide"
 )
 
+# === PROCUREMENT UI UPGRADE ===
+# Presentation layer only. Agent, database, constraints and workflow are unchanged.
+
+st.markdown("""
+<style>
+.block-container {
+    max-width: 1500px;
+    padding-top: 2rem;
+    padding-bottom: 3rem;
+}
+
+[data-testid="stHeader"] {
+    background: transparent;
+}
+
+[data-testid="stToolbar"] {
+    right: 1rem;
+}
+
+section[data-testid="stSidebar"] {
+    border-right: 1px solid #253241;
+}
+
+section[data-testid="stSidebar"] > div {
+    padding-top: 1.5rem;
+}
+
+div[data-testid="stVerticalBlockBorderWrapper"] {
+    border: 1px solid #253241;
+    border-radius: 14px;
+    background: linear-gradient(145deg, #111821, #0D131A);
+}
+
+div[data-testid="stMetric"] {
+    background: #111821;
+    border: 1px solid #253241;
+    padding: 1rem 1.1rem;
+    border-radius: 12px;
+}
+
+div[data-testid="stMetricLabel"] {
+    color: #91A1B2;
+}
+
+div[data-testid="stMetricValue"] {
+    font-weight: 700;
+}
+
+.stButton > button {
+    border-radius: 10px;
+    min-height: 2.7rem;
+    font-weight: 650;
+    border: 1px solid #2A3949;
+    transition: all .15s ease;
+}
+
+.stButton > button:hover {
+    border-color: #00C2A8;
+    box-shadow: 0 0 0 1px #00C2A8;
+}
+
+button[kind="primary"] {
+    background: linear-gradient(90deg, #00A98F, #00C2A8);
+    color: #06110F;
+    border: 0;
+}
+
+div[data-baseweb="select"] > div,
+div[data-testid="stTextInput"] input,
+div[data-testid="stNumberInput"] input {
+    border-radius: 9px;
+}
+
+details {
+    border: 1px solid #253241 !important;
+    border-radius: 10px !important;
+    background: #0F151D !important;
+}
+
+[data-testid="stDataFrame"] {
+    border: 1px solid #253241;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+div[data-testid="stAlert"] {
+    border-radius: 10px;
+}
+
+h1 {
+    letter-spacing: -.035em;
+}
+
+h2, h3 {
+    letter-spacing: -.02em;
+}
+
+.procurement-hero {
+    padding: 1.35rem 1.5rem;
+    margin: 0 0 1.5rem 0;
+    border: 1px solid #253241;
+    border-radius: 16px;
+    background: radial-gradient(
+        circle at 85% 20%,
+        rgba(0,194,168,.12),
+        transparent 30%
+    ), linear-gradient(135deg, #111A23, #0B1118);
+}
+
+.procurement-kicker {
+    color: #00C2A8;
+    font-size: .78rem;
+    font-weight: 750;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.procurement-subtitle {
+    color: #91A1B2;
+    margin-top: .35rem;
+    font-size: .98rem;
+}
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<div class="procurement-hero">
+    <div class="procurement-kicker">
+        PROCUREMENT INTELLIGENCE CONSOLE
+    </div>
+    <div class="procurement-subtitle">
+        Investigate → Constrain → Decide → Approve → Execute → Validate
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# === END PROCUREMENT UI UPGRADE ===
+
 # Seed database on startup
 @st.cache_resource
 def init_db():

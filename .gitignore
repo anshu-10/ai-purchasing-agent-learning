@@ -1,7 +1,32 @@
+# Environment / secrets
 .env
-*.db
-__pycache__
-.pytest_cache
+.env.*
+!.env.example
+
+# Virtual environments
 venv/
-*.pyc
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Archives
 *.zip
+
+# Streamlit secrets
+.streamlit/secrets.toml
